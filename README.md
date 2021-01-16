@@ -6,12 +6,18 @@ A process for monitoring the logs of Satisfactory, by Coffee Stain Studios, and 
 ## Development Setup
 ### Install build tools
 
-`python3 -m venv .venv`
+`python -m venv .venv`
 
 `./.venv/Scripts/activate`
 
-`python3 -m pip install -r dev-requirements.txt`
+`python -m pip install -r dev-requirements.txt`
 
 ### Run the build
 
-`python3 -m build -sw`
+`python -m build -sw`
+
+### Install runtime dependencies
+
+1. Run the build at least once
+
+2. `python -m pip install -r satisfactory_monitoring.egg-info/requires.txt`

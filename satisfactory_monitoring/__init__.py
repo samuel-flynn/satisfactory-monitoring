@@ -11,6 +11,6 @@ def setup_logging():
         logging_config = json.load(fp)
         logging.config.dictConfig(logging_config)
     
-    logging.getLogger('satisfactory_monitoring').info('Logging initialized')
+    logging.getLogger().info('Logging initialized')
 
 setup_logging()
