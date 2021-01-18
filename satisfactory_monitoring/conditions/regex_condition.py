@@ -1,7 +1,7 @@
 import re
 import logging
 
-class regex_rule:
+class regex_condition:
     __LOGGER = logging.getLogger(__name__)
 
     def __init__(self, regex_str):

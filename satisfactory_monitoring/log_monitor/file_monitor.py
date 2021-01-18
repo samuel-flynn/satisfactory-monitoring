@@ -1,11 +1,11 @@
 import logging
 import os
-import time
+import asyncio
 
 __SATISFACTORY_LOG_PATH_ENV_VAR = 'SATISFACTORY_LOG_PATH'
 __WINDOWS_LOCALAPPDATA_ENV_VAR = 'LOCALAPPDATA'
 
-def open_watch(processors):
+async def open_watch(processors):
 
     logger = logging.getLogger(__name__)
 
@@ -34,10 +34,10 @@ def open_watch(processors):
                         if not reached_tail_flag:
                             logger.info('Reached log tail')
                             reached_tail_flag = True
-                        time.sleep(1)
+                        await asyncio.sleep(1)
                     else:
                         line += tail
                 for processor in processors:
-                    processor.process_line(line.strip())
+                    await processor.process_line(line.strip())
         except KeyboardInterrupt:
             logger.info(f'Terminating watch on {log_path}.')

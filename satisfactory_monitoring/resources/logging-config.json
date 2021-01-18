@@ -13,7 +13,7 @@
         }
     },
     "root": {
-        "level": "INFO",
+        "level": "DEBUG",
         "handlers": ["console"],
         "formatter": "default"
     }
