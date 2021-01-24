@@ -4,10 +4,9 @@ import asyncio
 
 __SATISFACTORY_LOG_PATH_ENV_VAR = 'SATISFACTORY_LOG_PATH'
 __WINDOWS_LOCALAPPDATA_ENV_VAR = 'LOCALAPPDATA'
+__LOGGER = logging.getLogger(__name__)
 
 async def open_watch(processors):
-
-    logger = logging.getLogger(__name__)
 
     log_path = ''
     if __SATISFACTORY_LOG_PATH_ENV_VAR in os.environ:
@@ -26,8 +25,8 @@ async def open_watch(processors):
     try:
         while True:
             try:
-                with open(log_path) as log_file:
-                    logger.info(f'Beginning watch on file: {log_path}')
+                with open(log_path, 'rb') as log_file:
+                    __LOGGER.info(f'Beginning watch on file: {log_path}')
                     current_position = 0
                     while True:
                         line = ''
@@ -37,21 +36,21 @@ async def open_watch(processors):
 
                             tail = log_file.readline()
 
-                            if tail == '':
+                            if len(tail) == 0:
                                 if not reached_tail_flag:
-                                    logger.info('Reached log tail')
+                                    __LOGGER.info('Reached log tail')
                                     reached_tail_flag = True
                                 await asyncio.sleep(1)
                             else:
-                                line += tail
+                                line += tail.decode('utf-8')
                             current_position = log_file.tell()
                         for processor in processors:
                             await processor.process_line(line.strip())
             except IOError as e:
-                logger.info(f'IOError: {str(e)}')
+                __LOGGER.info(f'IOError: {str(e)}')
             await asyncio.sleep(1)
     except KeyboardInterrupt:
-        logger.info(f'Terminating watch on {log_path}.')
+        __LOGGER.info(f'Terminating watch on {log_path}.')
 
 def __check_for_rotation(log_file, current_position):
 
@@ -61,6 +60,8 @@ def __check_for_rotation(log_file, current_position):
 
     # If the end position is before our last known position, just go to the beginning. Otherwise, put the pointer back where it was
     if end_position < current_position:
+        __LOGGER.debug(f'Seeking to beginning of log because end_position: {end_position} '
+            f'< current_position: {current_position}')
         log_file.seek(0, 0)
     else:
         log_file.seek(current_position, 0)
