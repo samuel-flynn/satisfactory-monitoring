@@ -23,21 +23,44 @@ async def open_watch(processors):
     reached_tail_flag = False
     
     # Source: https://stackoverflow.com/a/11909303
-    with open(log_path) as log_file:
-        try:
-            logger.info(f'Beginning watch on file: {log_path}')
-            while True:
-                line = ''
-                while len(line) == 0 or line[-1] != '\n':
-                    tail = log_file.readline()
-                    if tail == '':
-                        if not reached_tail_flag:
-                            logger.info('Reached log tail')
-                            reached_tail_flag = True
-                        await asyncio.sleep(1)
-                    else:
-                        line += tail
-                for processor in processors:
-                    await processor.process_line(line.strip())
-        except KeyboardInterrupt:
-            logger.info(f'Terminating watch on {log_path}.')
+    try:
+        while True:
+            try:
+                with open(log_path) as log_file:
+                    logger.info(f'Beginning watch on file: {log_path}')
+                    current_position = 0
+                    while True:
+                        line = ''
+                        while len(line) == 0 or line[-1] != '\n':
+
+                            __check_for_rotation(log_file, current_position)
+
+                            tail = log_file.readline()
+
+                            if tail == '':
+                                if not reached_tail_flag:
+                                    logger.info('Reached log tail')
+                                    reached_tail_flag = True
+                                await asyncio.sleep(1)
+                            else:
+                                line += tail
+                            current_position = log_file.tell()
+                        for processor in processors:
+                            await processor.process_line(line.strip())
+            except IOError as e:
+                logger.info(f'IOError: {str(e)}')
+            await asyncio.sleep(1)
+    except KeyboardInterrupt:
+        logger.info(f'Terminating watch on {log_path}.')
+
+def __check_for_rotation(log_file, current_position):
+
+    # Seek to the end of the file and get the position
+    log_file.seek(0, 2)
+    end_position = log_file.tell()
+
+    # If the end position is before our last known position, just go to the beginning. Otherwise, put the pointer back where it was
+    if end_position < current_position:
+        log_file.seek(0, 0)
+    else:
+        log_file.seek(current_position, 0)

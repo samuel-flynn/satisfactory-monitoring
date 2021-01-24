@@ -30,16 +30,20 @@ async def main():
         token = os.environ[__DISCORD_TOKEN_ENV_VARIABLE]
     else:
         raise EnvironmentError(f'Environment variable {__DISCORD_TOKEN_ENV_VARIABLE} is required.')
+
+    loop = asyncio.get_running_loop()
     
-    discord_action = discord_alert_action(token, 'SnakeyServer Monitoring', 'test-messages')
+    discord_action = discord_alert_action(token, 'SnakeyServer Monitoring', 'satisfactory')
     log_action = log_alert_action()
 
-    with idle_alert_processor([log_action, discord_action], __IDLE_ALERT_THRESHOLD_SECONDS) as crash_alert_processor:
+    with idle_alert_processor([log_action, discord_action], __IDLE_ALERT_THRESHOLD_SECONDS, loop) as crash_alert_processor:
         error_alert_processor = default_alert_processor([log_action, discord_action])
 
-        connection_problem_condition = regex_condition(re.escape('Warning: OSS: EOSSDK-LogHttp: Retry exhausted on https://api.epicgames.dev/matchmaking/'))
+        connection_problem_condition = regex_condition('Server lost connection to matchmaking', re.escape('Warning: OSS: EOSSDK-LogHttp: Retry exhausted on https://api.epicgames.dev/matchmaking/'))
+        server_start_condition = regex_condition('Server started', re.escape('LogGameState: Match State Changed from WaitingToStart to InProgress'))
+        server_stop_condition = regex_condition('Server shutdown', re.escape('Closing by request'))
 
-        line_processor = alerting_line_processor({crash_alert_processor : [always_condition()], error_alert_processor : [connection_problem_condition]})
+        line_processor = alerting_line_processor({crash_alert_processor : [always_condition()], error_alert_processor : [connection_problem_condition, server_start_condition, server_stop_condition]})
         discord_task = asyncio.create_task(discord_action.start())
         file_monitor_task = file_monitor.open_watch([line_processor])
 
